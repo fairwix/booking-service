@@ -12,22 +12,48 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 
-	model "lab1/internal/model"
-	"lab1/internal/model/desk"
-	"lab1/internal/model/room"
-	"lab1/internal/service"
-	grpctransport "lab1/internal/transport/grpc"
-	httptransport "lab1/internal/transport/http"
-	pb "lab1/proto"
+	model "github.com/fairwix/resource-booking-service/internal/model"
+	"github.com/fairwix/resource-booking-service/internal/model/desk"
+	"github.com/fairwix/resource-booking-service/internal/model/room"
+	"github.com/fairwix/resource-booking-service/internal/service"
+	grpctransport "github.com/fairwix/resource-booking-service/internal/transport/grpc"
+	httptransport "github.com/fairwix/resource-booking-service/internal/transport/http"
+	pb "github.com/fairwix/resource-booking-service/proto"
 )
 
 func main() {
+	shutdownTimeout := 5 * time.Second
+	if value := os.Getenv("SHUTDOWN_TIMEOUT"); value != "" {
+		parsed, err := time.ParseDuration(value)
+		if err != nil || parsed <= 0 {
+			log.Fatalf("SHUTDOWN_TIMEOUT must be a positive duration (for example, 5s): %q", value)
+		}
+		shutdownTimeout = parsed
+	}
+
+	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
+		pool, err := pgxpool.New(context.Background(), databaseURL)
+		if err != nil {
+			log.Fatalf("failed to configure PostgreSQL connection: %v", err)
+		}
+		defer pool.Close()
+
+		pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err = pool.Ping(pingCtx)
+		cancel()
+		if err != nil {
+			log.Fatalf("failed to connect to PostgreSQL: %v", err)
+		}
+		log.Println("connected to PostgreSQL")
+	}
+
 	meetingRoom, err := room.NewRoom(1, "Meeting Room", 10)
 	if err != nil {
 		log.Printf("failed to create room: %v", err)
@@ -148,7 +174,7 @@ func main() {
 
 		shutdownCtx, cancel := context.WithTimeout(
 			context.Background(),
-			5*time.Second,
+			shutdownTimeout,
 		)
 		defer cancel()
 

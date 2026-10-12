@@ -258,7 +258,7 @@ const file_proto_booking_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\tR\x06status2\x86\x01\n" +
 	"\x0eBookingService\x123\n" +
 	"\x04Book\x12\x14.booking.BookRequest\x1a\x15.booking.BookResponse\x12?\n" +
-	"\bGetState\x12\x18.booking.GetStateRequest\x1a\x19.booking.GetStateResponseB\x12Z\x10lab1/proto;protob\x06proto3"
+	"\bGetState\x12\x18.booking.GetStateRequest\x1a\x19.booking.GetStateResponseB9Z7github.com/fairwix/resource-booking-service/proto;protob\x06proto3"
 
 var (
 	file_proto_booking_proto_rawDescOnce sync.Once

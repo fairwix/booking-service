@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package booking;
 
-option go_package = "lab1/proto;proto";
+option go_package = "github.com/fairwix/resource-booking-service/proto;proto";
 
 service BookingService {
   rpc Book(BookRequest) returns (BookResponse);

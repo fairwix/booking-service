@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: booking-config
+
+data:
+  HTTP_PORT: "8080"
+  GRPC_PORT: "9090"
+  SHUTDOWN_TIMEOUT: "5s"

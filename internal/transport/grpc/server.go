@@ -7,9 +7,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	model "lab1/internal/model"
-	"lab1/internal/service"
-	pb "lab1/proto"
+	model "github.com/fairwix/resource-booking-service/internal/model"
+	"github.com/fairwix/resource-booking-service/internal/service"
+	pb "github.com/fairwix/resource-booking-service/proto"
 )
 
 type Server struct {

@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+
+    environment:
+      POSTGRES_DB: booking
+      POSTGRES_USER: booking
+      POSTGRES_PASSWORD: booking
+
+    ports:
+      - "5432:5432"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booking -d booking"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    environment:
+      HTTP_PORT: "${HTTP_PORT:-8080}"
+      GRPC_PORT: "${GRPC_PORT:-9090}"
+      DATABASE_URL: "postgres://booking:booking@postgres:5432/booking?sslmode=disable"
+
+    ports:
+      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+      - "${GRPC_PORT:-9090}:${GRPC_PORT:-9090}"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:$${HTTP_PORT}/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s

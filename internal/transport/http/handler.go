@@ -6,8 +6,8 @@ import (
 	"io"
 	"net/http"
 
-	model "lab1/internal/model"
-	"lab1/internal/service"
+	model "github.com/fairwix/resource-booking-service/internal/model"
+	"github.com/fairwix/resource-booking-service/internal/service"
 )
 
 type Handler struct {

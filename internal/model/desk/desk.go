@@ -1,7 +1,7 @@
 package desk
 
 import (
-	"lab1/internal/model"
+	"github.com/fairwix/resource-booking-service/internal/model"
 )
 
 func (d Desk) Status() model.BookingStatus {

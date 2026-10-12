@@ -1,7 +1,7 @@
 package desk
 
 import (
-	model2 "lab1/internal/model"
+	model2 "github.com/fairwix/resource-booking-service/internal/model"
 )
 
 // У Desk параметр attendees осознанно не используется: стол один и тот же

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"sync"
 
-	model "lab1/internal/model"
+	model "github.com/fairwix/resource-booking-service/internal/model"
 )
 
 type BookingService interface {
