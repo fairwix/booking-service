@@ -1,28 +1,28 @@
-# Resource Booking Service
+# Сервис бронирования ресурсов
 
-A Go service for booking shared resources. It exposes the same booking operations over **HTTP and gRPC**, keeps concurrent access to its in-memory state safe, and can run locally, with Docker Compose, or in a local Kubernetes cluster.
+Сервис на Go для бронирования общих ресурсов. Он предоставляет единый набор операций через **HTTP и gRPC**, безопасно обрабатывает одновременный доступ к состоянию в памяти и запускается локально, в Docker Compose или в локальном кластере Kubernetes.
 
-## What it does
+## Возможности
 
-- Books a meeting room or desk and returns their current availability.
-- Shares one application service between the HTTP and gRPC transports.
-- Maps validation and booking errors to appropriate HTTP status codes and gRPC codes.
-- Exposes HTTP `/health` and the standard `grpc.health.v1.Health` service.
-- Shuts down both servers gracefully on `SIGINT` or `SIGTERM`.
-- Uses a multi-stage Docker build, Compose health checks, and a two-replica Kubernetes Deployment with separate liveness and readiness probes.
+- Бронирование переговорной комнаты или рабочего стола и получение их текущего состояния.
+- Общая логика приложения для HTTP- и gRPC-транспортов.
+- Преобразование ошибок в соответствующие HTTP-статусы и коды gRPC.
+- HTTP-эндпоинт `/health` и стандартный сервис `grpc.health.v1.Health`.
+- Корректное завершение обоих серверов по сигналам `SIGINT` и `SIGTERM`.
+- Multi-stage Docker-сборка, проверки здоровья в Compose и Deployment Kubernetes с двумя репликами и отдельными liveness- и readiness-пробами.
 
 > [!IMPORTANT]
-> Booking state is currently **in memory**. PostgreSQL is connected and pinged when `DATABASE_URL` is set, but bookings are not stored there yet. Each Kubernetes replica therefore has its own state. The two-replica setup demonstrates orchestration; it is not a consistent multi-replica booking system until persistence is added.
+> Сейчас состояние бронирований хранится **в памяти процесса**. Если задана переменная `DATABASE_URL`, сервис подключается к PostgreSQL и проверяет соединение, но пока не сохраняет в базу бронирования. Поэтому у каждой реплики Kubernetes своё состояние. Конфигурация с двумя репликами демонстрирует оркестрацию, но для согласованного бронирования между репликами нужно добавить постоянное хранилище.
 
-## Quick start
+## Быстрый запуск
 
-Requires Go 1.27.1. From the repository root:
+Требуется Go 1.27.1. Запустите из корня репозитория:
 
 ```bash
 go run ./cmd/service
 ```
 
-The HTTP server listens on `8080` and gRPC on `9090` by default. Verify them with:
+По умолчанию HTTP-сервер слушает порт `8080`, а gRPC — `9090`. Проверить их можно так:
 
 ```bash
 curl http://localhost:8080/health
@@ -30,7 +30,7 @@ curl http://localhost:8080/resources
 grpcurl -plaintext localhost:9090 grpc.health.v1.Health/Check
 ```
 
-[`grpcurl`](https://github.com/fullstorydev/grpcurl) is needed only for the gRPC command.
+Утилита [`grpcurl`](https://github.com/fullstorydev/grpcurl) нужна только для проверки gRPC.
 
 ### Docker Compose
 
@@ -38,13 +38,13 @@ grpcurl -plaintext localhost:9090 grpc.health.v1.Health/Check
 docker compose up --build --wait
 ```
 
-Compose starts PostgreSQL, waits for its `pg_isready` health check, then starts the service. The service verifies its database connection before opening the HTTP and gRPC listeners. Its own health check calls HTTP `/health`.
+Compose запускает PostgreSQL, ждёт успешной проверки `pg_isready`, а затем запускает сервис. Перед открытием HTTP- и gRPC-портов сервис проверяет соединение с базой данных. Его собственная проверка здоровья обращается к HTTP-эндпоинту `/health`.
 
-To change the exposed ports, set `HTTP_PORT` and `GRPC_PORT` before starting Compose. Run `docker compose down` to stop the stack. The credentials in [`docker-compose.yml`](docker-compose.yml) are for local development only.
+Чтобы изменить опубликованные порты, задайте `HTTP_PORT` и `GRPC_PORT` перед запуском Compose. Остановить сервисы можно командой `docker compose down`. Учётные данные в [`docker-compose.yml`](docker-compose.yml) предназначены только для локальной разработки.
 
-### Local Kubernetes
+### Локальный Kubernetes
 
-Requires Docker, Minikube, and `kubectl`:
+Требуются Docker, Minikube и `kubectl`:
 
 ```bash
 minikube start
@@ -53,22 +53,22 @@ minikube start
 kubectl port-forward service/booking-service 8080:8080 9090:9090
 ```
 
-The deploy script builds `resource-booking-service:local`, loads it into Minikube, applies [`k8s/`](k8s/), and waits for two ready replicas. The `ClusterIP` Service exposes both transports inside the cluster. The image is local (`imagePullPolicy: Never`), so it must be loaded again for a fresh Minikube cluster.
+Скрипт развёртывания собирает образ `resource-booking-service:local`, загружает его в Minikube, применяет манифесты из [`k8s/`](k8s/) и ждёт готовности двух реплик. Сервис типа `ClusterIP` предоставляет оба транспорта внутри кластера. Образ собирается локально (`imagePullPolicy: Never`), поэтому в новый кластер Minikube его нужно загрузить повторно.
 
-Kubernetes checks HTTP `/health` for liveness and the native gRPC health protocol for readiness. The Minikube environment used for this project runs Kubernetes v1.37.0, which supports the native gRPC probe; no extra probe binary is needed. `requests` reserve capacity for scheduling, while `limits` cap CPU and memory use. Ports and the shutdown timeout are passed to the application through a ConfigMap. Numeric Kubernetes fields, including the gRPC probe port, must still match those values in the manifests.
+Kubernetes проверяет liveness по HTTP-эндпоинту `/health`, а readiness — нативной gRPC health-пробой. Использовавшийся для проекта Minikube работает на Kubernetes v1.37.0 и поддерживает эту пробу, поэтому отдельная утилита для проверки gRPC не нужна. `requests` резервируют ресурсы для планирования Pod, а `limits` ограничивают потребление CPU и памяти. Порты и тайм-аут завершения передаются приложению через ConfigMap. Числовые поля манифестов Kubernetes, включая порт gRPC-пробы, должны совпадать с этими настройками.
 
 ## API
 
-| Transport | Operation | Request | Result |
+| Транспорт | Операция | Запрос | Результат |
 | --- | --- | --- | --- |
 | HTTP | `GET /health` | — | `200 {"status":"ok"}` |
-| HTTP | `GET /resources` | — | Resource IDs and `available`/`booked` statuses |
-| HTTP | `POST /resources/book` | `{"id":1,"attendees":4}` | `204 No Content` on success |
-| gRPC | `booking.BookingService/GetState` | Empty request | Resource states |
-| gRPC | `booking.BookingService/Book` | ID and attendees | Empty response on success |
-| gRPC | `grpc.health.v1.Health/Check` | Empty request | `SERVING` while ready |
+| HTTP | `GET /resources` | — | Идентификаторы ресурсов и статусы `available` / `booked` |
+| HTTP | `POST /resources/book` | `{"id":1,"attendees":4}` | `204 No Content` при успехе |
+| gRPC | `booking.BookingService/GetState` | Пустой запрос | Состояния ресурсов |
+| gRPC | `booking.BookingService/Book` | ID и число участников | Пустой ответ при успехе |
+| gRPC | `grpc.health.v1.Health/Check` | Пустой запрос | `SERVING`, если сервис готов |
 
-Example booking:
+Пример бронирования:
 
 ```bash
 curl -i -X POST http://localhost:8080/resources/book \
@@ -76,30 +76,30 @@ curl -i -X POST http://localhost:8080/resources/book \
   -d '{"id":1,"attendees":4}'
 ```
 
-The initial resources are meeting room `1` (capacity 10) and desk `2`. A resource can be booked once until the process restarts. The [protobuf contract](proto/booking.proto) defines the gRPC API; server reflection is enabled.
+При запуске создаются переговорная `1` вместимостью 10 человек и стол `2`. Каждый ресурс можно забронировать один раз до перезапуска процесса. Контракт gRPC описан в [файле Protocol Buffers](proto/booking.proto); на сервере включена reflection.
 
-## Configuration
+## Настройки
 
-| Variable | Default | Purpose |
+| Переменная | Значение по умолчанию | Назначение |
 | --- | --- | --- |
-| `HTTP_PORT` | `8080` | HTTP listener port |
-| `GRPC_PORT` | `9090` | gRPC listener port |
-| `SHUTDOWN_TIMEOUT` | `5s` | Maximum time for graceful shutdown; must be positive |
-| `DATABASE_URL` | unset | Optional PostgreSQL connection URL; startup pings the database when set |
+| `HTTP_PORT` | `8080` | Порт HTTP-сервера |
+| `GRPC_PORT` | `9090` | Порт gRPC-сервера |
+| `SHUTDOWN_TIMEOUT` | `5s` | Положительный тайм-аут для корректного завершения |
+| `DATABASE_URL` | не задана | Необязательный URL PostgreSQL; при запуске сервис проверяет соединение |
 
-## Project layout
+## Структура проекта
 
 ```text
-cmd/service/              HTTP and gRPC server startup
-internal/model/           Resource types and domain rules
-internal/service/         Booking operations and synchronization
-internal/transport/       HTTP and gRPC adapters
-proto/                    Protocol Buffers contract and generated Go code
-k8s/                      Deployment, Service, and ConfigMap
-scripts/                  Local build, deploy, and orchestration demos
+cmd/service/              запуск HTTP- и gRPC-серверов
+internal/model/           типы ресурсов и правила предметной области
+internal/service/         операции бронирования и синхронизация
+internal/transport/       адаптеры HTTP и gRPC
+proto/                    контракт Protocol Buffers и сгенерированный Go-код
+k8s/                      Deployment, Service и ConfigMap
+scripts/                  сборка, развёртывание и демонстрация сценариев
 ```
 
-## Build and verification
+## Сборка и проверка
 
 ```bash
 go test ./...
@@ -108,14 +108,14 @@ go vet ./...
 kubectl apply --dry-run=client -f k8s/
 ```
 
-`Dockerfile` builds a static binary with `CGO_ENABLED=0` in a Go builder stage and copies only that binary into Alpine. `Dockerfile.single` keeps the full Go image for comparison; `scripts/docker-build.sh` builds both variants and lists their sizes.
+`Dockerfile` собирает статический бинарник (`CGO_ENABLED=0`) в Go-образе и переносит только его в Alpine. `Dockerfile.single` оставляет полный Go-образ для сравнения; `scripts/docker-build.sh` собирает оба варианта и выводит их размеры.
 
-The demo scripts can show pod replacement and a rolling update in Minikube. For a rolling update, run `./scripts/prepare-demo.sh` followed by `./scripts/demo-rolling-update.sh`. The `v1` and `v2` tags in that demo illustrate deployment mechanics; they do not claim two different feature releases.
+Скрипты демонстрации показывают автоматическое восстановление Pod и rolling update в Minikube. Для обновления запустите `./scripts/prepare-demo.sh`, а затем `./scripts/demo-rolling-update.sh`. Теги `v1` и `v2` нужны для демонстрации механики развёртывания и не обозначают разные версии функциональности.
 
-## Deployment report
+## Отчёт о развёртывании
 
-The Docker and Kubernetes lab report includes the recorded image-size comparison, Compose checks, cluster configuration, and screenshots of Pod recovery and rolling update: [Lab 2 report](docs/lab2-report.md).
+В [отчёте по лабораторной работе № 2](docs/lab2-report.md) собраны сравнение размеров образов, проверки Compose, конфигурация кластера и скриншоты восстановления Pod и rolling update.
 
-## Next step
+## Дальнейшее развитие
 
-Move booking state into PostgreSQL with transactional reservation checks so all replicas observe the same availability. The current database connection is an infrastructure starting point for that work.
+Следующий шаг — перенести состояние бронирований в PostgreSQL и добавить транзакционные проверки доступности, чтобы все реплики работали с одними и теми же данными. Текущее подключение к базе служит инфраструктурной основой для этой доработки.
